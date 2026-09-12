@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "158509263976",
+    "project_id": "herbalance-ai-f0ab2",
+    "storage_bucket": "herbalance-ai-f0ab2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:158509263976:android:1726ff356709b76a379fdd",
+        "android_client_info": {
+          "package_name": "com.ananya.herbalance.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZhPzZngA6ffMXMN-j94TcD74vgVpSyD8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
