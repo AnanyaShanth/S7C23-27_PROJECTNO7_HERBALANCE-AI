@@ -1,12 +1,439 @@
 import re
 from typing import Dict, List, Tuple
-from cosmetic_database import find_ingredient
 
 
 # ============================================================
 # HERBALANCE AI
 # COSMETIC INGREDIENT KNOWLEDGE BASE
 # ============================================================
+
+INGREDIENT_RULES = {
+
+    # --------------------------------------------------------
+    # MOISTURIZING / CONDITIONING
+    # --------------------------------------------------------
+
+    "water": {
+        "aliases": ["aqua"],
+        "level": "GENERALLY SUITABLE",
+        "function": "Solvent",
+        "reason": "Common solvent used in cosmetic formulations.",
+        "sensitive_skin": "Generally suitable.",
+        "dry_skin": "Generally suitable.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "glycerin": {
+        "aliases": ["glycerol"],
+        "level": "GENERALLY SUITABLE",
+        "function": "Humectant",
+        "reason": "Common moisturizing ingredient.",
+        "sensitive_skin": "Generally suitable.",
+        "dry_skin": "Can support hydration.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "hyaluronic acid": {
+        "aliases": [
+            "sodium hyaluronate",
+            "hydrolyzed hyaluronic acid",
+        ],
+        "level": "GENERALLY SUITABLE",
+        "function": "Humectant",
+        "reason": "Common moisturizing ingredient.",
+        "sensitive_skin": "Generally suitable.",
+        "dry_skin": "Can support skin hydration.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "panthenol": {
+        "aliases": [
+            "provitamin b5",
+            "d panthenol",
+            "dl panthenol",
+        ],
+        "level": "GENERALLY SUITABLE",
+        "function": "Skin conditioning",
+        "reason": "Used as a skin-conditioning and moisturizing ingredient.",
+        "sensitive_skin": "Generally suitable.",
+        "dry_skin": "Can support moisturization.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "niacinamide": {
+        "aliases": ["nicotinamide"],
+        "level": "GENERALLY SUITABLE",
+        "function": "Skin conditioning",
+        "reason": "Commonly used for skin conditioning and barrier support.",
+        "sensitive_skin": "Generally suitable for many users.",
+        "dry_skin": "Can support the skin barrier.",
+        "oily_skin": "Commonly used in products for oily skin.",
+    },
+
+    "ceramide": {
+        "aliases": [
+            "ceramide np",
+            "ceramide ap",
+            "ceramide eop",
+            "ceramide ns",
+            "ceramide as",
+        ],
+        "level": "GENERALLY SUITABLE",
+        "function": "Skin conditioning",
+        "reason": "Used in skincare formulations for skin conditioning.",
+        "sensitive_skin": "Generally suitable.",
+        "dry_skin": "Can support the skin barrier.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "squalane": {
+        "aliases": ["squalene"],
+        "level": "GENERALLY SUITABLE",
+        "function": "Emollient",
+        "reason": "Emollient commonly used to soften and condition skin.",
+        "sensitive_skin": "Generally suitable for many users.",
+        "dry_skin": "Can provide emollient support.",
+        "oily_skin": "May be suitable depending on the formulation.",
+    },
+
+    "allantoin": {
+        "aliases": [],
+        "level": "GENERALLY SUITABLE",
+        "function": "Skin conditioning",
+        "reason": "Commonly used as a skin-conditioning ingredient.",
+        "sensitive_skin": "Generally suitable for many users.",
+        "dry_skin": "Can support skin comfort.",
+        "oily_skin": "Generally suitable.",
+    },
+
+
+    # --------------------------------------------------------
+    # FRAGRANCE
+    # --------------------------------------------------------
+
+    "fragrance": {
+        "aliases": [
+            "parfum",
+            "perfume",
+        ],
+        "level": "CAUTION",
+        "function": "Fragrance",
+        "reason": "Fragrance ingredients can be a concern for people with fragrance sensitivity.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May be a concern for fragrance-sensitive users.",
+        "oily_skin": "Generally depends on individual sensitivity.",
+    },
+
+    "parfum": {
+        "aliases": [
+            "fragrance",
+            "perfume",
+        ],
+        "level": "CAUTION",
+        "function": "Fragrance",
+        "reason": "Fragrance ingredients can cause sensitivity in some users.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May be a concern for fragrance-sensitive users.",
+        "oily_skin": "Generally depends on individual sensitivity.",
+    },
+
+    "limonene": {
+        "aliases": ["d limonene"],
+        "level": "CAUTION",
+        "function": "Fragrance component",
+        "reason": "A fragrance component that may be relevant for fragrance-sensitive users.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May be a concern for fragrance-sensitive users.",
+        "oily_skin": "Depends on individual sensitivity.",
+    },
+
+    "linalool": {
+        "aliases": [],
+        "level": "CAUTION",
+        "function": "Fragrance component",
+        "reason": "A fragrance component that may be relevant for fragrance-sensitive users.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May be a concern for fragrance-sensitive users.",
+        "oily_skin": "Depends on individual sensitivity.",
+    },
+
+    "citronellol": {
+        "aliases": [],
+        "level": "CAUTION",
+        "function": "Fragrance component",
+        "reason": "A fragrance component that may be relevant for fragrance-sensitive users.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May be a concern for fragrance-sensitive users.",
+        "oily_skin": "Depends on individual sensitivity.",
+    },
+
+    "eugenol": {
+        "aliases": [],
+        "level": "CAUTION",
+        "function": "Fragrance component",
+        "reason": "A fragrance component that may be relevant for fragrance-sensitive users.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May be a concern for fragrance-sensitive users.",
+        "oily_skin": "Depends on individual sensitivity.",
+    },
+
+
+    # --------------------------------------------------------
+    # ALCOHOLS / SOLVENTS
+    # --------------------------------------------------------
+
+    "alcohol denat": {
+        "aliases": [
+            "denatured alcohol",
+            "sd alcohol",
+            "sd alcohol 40",
+            "ethanol",
+            "ethyl alcohol",
+        ],
+        "level": "CAUTION",
+        "function": "Solvent",
+        "reason": "May be irritating or drying for some sensitive skin users.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May feel drying for some users.",
+        "oily_skin": "May be suitable depending on the formulation.",
+    },
+
+    "benzyl alcohol": {
+        "aliases": [],
+        "level": "CAUTION",
+        "function": "Preservative / fragrance component",
+        "reason": "Can be a concern for some sensitive users.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "Depends on individual sensitivity.",
+        "oily_skin": "Depends on individual sensitivity.",
+    },
+
+
+    # --------------------------------------------------------
+    # EXFOLIATING / ACTIVE INGREDIENTS
+    # --------------------------------------------------------
+
+    "salicylic acid": {
+        "aliases": [
+            "beta hydroxy acid",
+            "bha",
+        ],
+        "level": "CAUTION",
+        "function": "Exfoliant",
+        "reason": "An exfoliating active that may cause irritation for some users.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May be drying or irritating for some users.",
+        "oily_skin": "Commonly used in products targeting oily skin.",
+    },
+
+    "glycolic acid": {
+        "aliases": [
+            "alpha hydroxy acid",
+            "aha",
+        ],
+        "level": "CAUTION",
+        "function": "AHA",
+        "reason": "An exfoliating acid that may irritate sensitive skin.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May be irritating or drying for some users.",
+        "oily_skin": "May be useful depending on the formulation.",
+    },
+
+    "lactic acid": {
+        "aliases": [],
+        "level": "CAUTION",
+        "function": "AHA",
+        "reason": "An exfoliating acid that may irritate sensitive skin.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May require gradual introduction.",
+        "oily_skin": "May be suitable depending on the formulation.",
+    },
+
+    "retinol": {
+        "aliases": [
+            "retinal",
+            "retinaldehyde",
+        ],
+        "level": "CAUTION",
+        "function": "Vitamin A derivative",
+        "reason": "Vitamin A derivatives can cause irritation and require appropriate product use.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May cause dryness or irritation for some users.",
+        "oily_skin": "May be used in some skincare routines.",
+    },
+
+    "retinyl palmitate": {
+        "aliases": [
+            "vitamin a palmitate",
+        ],
+        "level": "CAUTION",
+        "function": "Vitamin A derivative",
+        "reason": "Vitamin A derivative used in some cosmetic formulations.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "May cause irritation for some users.",
+        "oily_skin": "Depends on individual tolerance.",
+    },
+
+
+    # --------------------------------------------------------
+    # PRESERVATIVES
+    # --------------------------------------------------------
+
+    "methylisothiazolinone": {
+        "aliases": [
+            "mit",
+        ],
+        "level": "HIGH CONCERN",
+        "function": "Preservative",
+        "reason": "Associated with contact allergy concerns.",
+        "sensitive_skin": "Requires particular caution.",
+        "dry_skin": "Requires consideration of individual sensitivity.",
+        "oily_skin": "Requires consideration of individual sensitivity.",
+    },
+
+    "methylchloroisothiazolinone": {
+        "aliases": [
+            "mci",
+        ],
+        "level": "HIGH CONCERN",
+        "function": "Preservative",
+        "reason": "Associated with contact allergy concerns.",
+        "sensitive_skin": "Requires particular caution.",
+        "dry_skin": "Requires consideration of individual sensitivity.",
+        "oily_skin": "Requires consideration of individual sensitivity.",
+    },
+
+    "formaldehyde": {
+        "aliases": [],
+        "level": "HIGH CONCERN",
+        "function": "Preservative",
+        "reason": "Associated with irritation and sensitization concerns.",
+        "sensitive_skin": "Requires particular caution.",
+        "dry_skin": "Requires particular caution.",
+        "oily_skin": "Requires consideration of individual sensitivity.",
+    },
+
+    "phenoxyethanol": {
+        "aliases": [],
+        "level": "CAUTION",
+        "function": "Preservative",
+        "reason": "Common cosmetic preservative; individual sensitivity should be considered.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "Depends on individual sensitivity.",
+        "oily_skin": "Generally depends on individual sensitivity.",
+    },
+
+
+    # --------------------------------------------------------
+    # SUNSCREEN / UV FILTERS
+    # --------------------------------------------------------
+
+    "titanium dioxide": {
+        "aliases": [
+            "ci 77891",
+        ],
+        "level": "GENERALLY SUITABLE",
+        "function": "UV filter / Colorant",
+        "reason": "Commonly used in cosmetic and sunscreen formulations.",
+        "sensitive_skin": "Generally suitable for many users.",
+        "dry_skin": "Generally suitable.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "zinc oxide": {
+        "aliases": [
+            "ci 77947",
+        ],
+        "level": "GENERALLY SUITABLE",
+        "function": "UV filter",
+        "reason": "Commonly used in sunscreen formulations.",
+        "sensitive_skin": "Generally suitable for many users.",
+        "dry_skin": "Generally suitable.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "avobenzone": {
+        "aliases": [
+            "butyl methoxydibenzoylmethane",
+        ],
+        "level": "GENERALLY SUITABLE",
+        "function": "UV filter",
+        "reason": "UV filter commonly used in sunscreen products.",
+        "sensitive_skin": "Individual sensitivity should still be considered.",
+        "dry_skin": "Generally suitable.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "octocrylene": {
+        "aliases": [],
+        "level": "CAUTION",
+        "function": "UV filter",
+        "reason": "UV filter that may be relevant when assessing individual sensitivity.",
+        "sensitive_skin": "May warrant additional caution.",
+        "dry_skin": "Depends on individual sensitivity.",
+        "oily_skin": "Depends on individual sensitivity.",
+    },
+
+    "homosalate": {
+        "aliases": [],
+        "level": "CAUTION",
+        "function": "UV filter",
+        "reason": "UV filter; product-specific regulatory and formulation context should be considered.",
+        "sensitive_skin": "Individual sensitivity should be considered.",
+        "dry_skin": "Depends on individual sensitivity.",
+        "oily_skin": "Depends on individual sensitivity.",
+    },
+
+    "octisalate": {
+        "aliases": [
+            "ethylhexyl salicylate",
+        ],
+        "level": "GENERALLY SUITABLE",
+        "function": "UV filter",
+        "reason": "UV filter commonly used in sunscreen formulations.",
+        "sensitive_skin": "Individual sensitivity should still be considered.",
+        "dry_skin": "Generally suitable.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "octinoxate": {
+        "aliases": [
+            "ethylhexyl methoxycinnamate",
+            "octyl methoxycinnamate",
+        ],
+        "level": "CAUTION",
+        "function": "UV filter",
+        "reason": "UV filter used in sunscreen formulations; product-specific context should be considered.",
+        "sensitive_skin": "Individual sensitivity should be considered.",
+        "dry_skin": "Depends on individual sensitivity.",
+        "oily_skin": "Depends on individual sensitivity.",
+    },
+
+    "bemotrizinol": {
+        "aliases": [
+            "bis ethylhexyloxyphenol methoxyphenyl triazine",
+        ],
+        "level": "GENERALLY SUITABLE",
+        "function": "UV filter",
+        "reason": "Modern UV filter used in some sunscreen formulations.",
+        "sensitive_skin": "Individual sensitivity should still be considered.",
+        "dry_skin": "Generally suitable.",
+        "oily_skin": "Generally suitable.",
+    },
+
+    "diethylamino hydroxybenzoyl hexyl benzoate": {
+        "aliases": [
+            "uvinal a plus",
+        ],
+        "level": "GENERALLY SUITABLE",
+        "function": "UV filter",
+        "reason": "UV filter used in some sunscreen formulations.",
+        "sensitive_skin": "Individual sensitivity should still be considered.",
+        "dry_skin": "Generally suitable.",
+        "oily_skin": "Generally suitable.",
+    },
+}
+
 
 # ============================================================
 # TEXT NORMALIZATION
@@ -559,57 +986,42 @@ def ingredient_occurs_in_text(
 
     return False
 
+
 def find_known_ingredients(text: str) -> List[Dict]:
     """
-    Finds ingredients using the CosIng Checker API.
+    Finds ingredients from the local knowledge base.
     """
 
     if not text:
         return []
 
     found = []
-    possible = extract_possible_ingredient_names(text)
 
-    for ingredient_name in possible:
-        api_result = find_ingredient(ingredient_name)
+    for canonical_name, rule in INGREDIENT_RULES.items():
 
-        if not api_result:
-            continue
+        if ingredient_occurs_in_text(
+            canonical_name,
+            rule.get("aliases", []),
+            text,
+        ):
 
-        inci_name = (api_result.get("inci_name") or "").strip()
+            found.append({
+                "name": canonical_name.title(),
+                "canonical_name": canonical_name,
+                "level": rule["level"],
+                "function": rule["function"],
+                "reason": rule["reason"],
+            })
 
-        if not inci_name:
-            continue
-
-        function = api_result.get("function") or "Information not available"
-        restriction = api_result.get("restriction")
-
-        if restriction:
-            level = "POTENTIAL SAFETY CONCERN"
-            reason = f"Cosmetic API reports a restriction: {restriction}"
-        else:
-            level = "GENERALLY SUITABLE"
-            reason = "No restriction was reported in the cosmetic API record."
-
-        found.append({
-            "name": inci_name.title(),
-            "canonical_name": inci_name.lower(),
-            "level": level,
-            "function": function,
-            "reason": reason,
-            "description": api_result.get("description"),
-            "cas_number": api_result.get("cas_number"),
-            "ec_number": api_result.get("ec_number"),
-            "functions": api_result.get("functions", []),
-            "restriction": restriction,
-        })
-
+    # Remove duplicates.
     unique = {}
-
     for ingredient in found:
         unique[ingredient["canonical_name"]] = ingredient
 
-    return list(unique.values())# ============================================================
+    return list(unique.values())
+
+
+# ============================================================
 # UNKNOWN INGREDIENT DETECTION
 # ============================================================
 
@@ -640,10 +1052,6 @@ def extract_possible_ingredient_names(text: str) -> List[str]:
     for piece in pieces:
 
         piece = piece.strip()
-
-        # Remove product/title text before a sentence-ending period.
-        if "." in piece:
-            piece = piece.rsplit(".", 1)[-1].strip()
 
         if not piece:
             continue
@@ -698,6 +1106,7 @@ def extract_possible_ingredient_names(text: str) -> List[str]:
 
     return list(dict.fromkeys(possible))
 
+
 def find_unknown_ingredients(
     text: str,
     known_ingredients: List[Dict],
@@ -709,24 +1118,20 @@ def find_unknown_ingredients(
 
     for ingredient in known_ingredients:
 
-        canonical = ingredient.get(
-            "canonical_name",
-            "",
-        )
-
-        if canonical:
-            known_names.add(
-                normalize_ingredient_name(canonical)
+        known_names.add(
+            normalize_ingredient_name(
+                ingredient["name"]
             )
-
-        display_name = ingredient.get(
-            "name",
-            "",
         )
 
-        if display_name:
+        rule = INGREDIENT_RULES.get(
+            ingredient["canonical_name"],
+            {},
+        )
+
+        for alias in rule.get("aliases", []):
             known_names.add(
-                normalize_ingredient_name(display_name)
+                normalize_ingredient_name(alias)
             )
 
     unknown = []
@@ -747,7 +1152,10 @@ def find_unknown_ingredients(
 
         unknown.append(item)
 
-    return list(dict.fromkeys(unknown))# ============================================================
+    return list(dict.fromkeys(unknown))
+
+
+# ============================================================
 # ALLERGY / SENSITIVITY NORMALIZATION
 # ============================================================
 
@@ -787,6 +1195,7 @@ def normalize_profile_list(value) -> List[str]:
 
     return list(dict.fromkeys(result))
 
+
 def ingredient_matches_profile_term(
     ingredient: Dict,
     profile_terms: List[str],
@@ -795,31 +1204,22 @@ def ingredient_matches_profile_term(
     if not profile_terms:
         return False
 
-    candidates = [
-        ingredient.get("canonical_name", ""),
-        ingredient.get("name", ""),
-    ]
+    canonical = ingredient["canonical_name"]
 
-    # Include the API ingredient name if available.
-    api_inci = ingredient.get("inci_name", "")
-
-    if api_inci:
-        candidates.append(api_inci)
-
-    # Include functions returned by the cosmetic API.
-    candidates.extend(
-        ingredient.get("functions", []) or []
+    rule = INGREDIENT_RULES.get(
+        canonical,
+        {},
     )
+
+    candidates = [
+        canonical,
+        ingredient["name"],
+        *rule.get("aliases", []),
+    ]
 
     normalized_candidates = [
         normalize_ingredient_name(c)
         for c in candidates
-        if c
-    ]
-
-    normalized_candidates = [
-        c for c in normalized_candidates
-        if c
     ]
 
     for profile_term in profile_terms:
@@ -828,10 +1228,10 @@ def ingredient_matches_profile_term(
             profile_term
         )
 
-        if not normalized_profile_term:
-            continue
-
         for candidate in normalized_candidates:
+
+            if not candidate:
+                continue
 
             if (
                 candidate == normalized_profile_term
@@ -840,7 +1240,9 @@ def ingredient_matches_profile_term(
             ):
                 return True
 
-    return False# ============================================================
+    return False
+
+# ============================================================
 # PERSONALIZED ANALYSIS
 # ============================================================
 
@@ -1825,5 +2227,3 @@ def analyze_cosmetic(
             "and individual sensitivity."
         ),
     }
-
-
