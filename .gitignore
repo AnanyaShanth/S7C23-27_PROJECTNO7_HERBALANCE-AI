@@ -46,3 +46,4 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+/backend/cosmetic_analyzer_backup_before_clean_api.py
